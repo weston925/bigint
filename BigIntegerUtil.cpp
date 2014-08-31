@@ -29,6 +29,7 @@ using namespace std;
 
 namespace BigNumber
 {
+	// converts a BigUnsigned to a BigInteger
 	BigInteger BigIntegerUtil::toSigned(const BigUnsigned &value)
 	{
 		BigInteger retVal;
@@ -36,18 +37,22 @@ namespace BigNumber
 		return move(retVal);
 	}
 
+	// converts a BigInteger to a BigUnsigned
 	BigUnsigned BigIntegerUtil::toUnsigned(const BigInteger &value)
 	{
 		if (value.negative)
-			runtime_error("BigIntegerUtil::toUnsigned: cannot convert a negative value to unsigned data type");
+			runtime_error("BigIntegerUtil::toUnsigned: cannot convert a negative value to an unsigned data type");
 
 		return value.data;
 	}
 
+	// converts a string to a BigUnsigned
 	BigUnsigned BigIntegerUtil::stringToBigUnsigned(string value)
 	{
+		BigUnsigned retVal;
+
 		if (value.empty())
-			runtime_error("BigIntegerUtil::stringToBigUnsigned: cannot get BigUnsigned from an empty string");
+			return retVal;
 
 		if (value.front() == '-')
 			runtime_error("BigIntegerUtil::stringToBigUnsigned: cannot convert a negative value to unsigned data type");
@@ -56,21 +61,19 @@ namespace BigNumber
 
 		for (auto iter = begin(value); iter != end(value); ++iter)
 		{
-			if (!isNumber)
-				break;
-
-			if (*iter < '0' || *iter > '9')
+			if (!isdigit(*iter))
+			{
 				isNumber = false;
+				break;
+			}
 		}
 
 		if (!isNumber)
 			runtime_error("BigIntegerUtil::stringToBigUnsigned: string recieved is not a number");
 
-		BigUnsigned retVal;
-		string val = value;
 		BigUnsigned::dataType data = 0;
 		size_t bitsSet = 0;
-		while (val != "0")
+		while (value != "0")
 		{
 			if (bitsSet == BigUnsigned::dataTypeSize)
 			{
@@ -80,7 +83,7 @@ namespace BigNumber
 			}
 
 			data >>= 1;
-			if (strHalf(val))
+			if (strHalf(value))
 				data |= 1 << (BigUnsigned::dataTypeSize - 1);
 
 			++bitsSet;
@@ -95,6 +98,7 @@ namespace BigNumber
 		return move(retVal);
 	}
 
+	// converts a string to a BigInteger
 	BigInteger BigIntegerUtil::stringToBigInteger(string value)
 	{
 		if (value.empty())
@@ -113,45 +117,59 @@ namespace BigNumber
 		return move(retVal);
 	}
 
+	// converts a BigUnsigned to a string
 	string BigIntegerUtil::bigUnsignedToString(const BigUnsigned &value, ios_base::fmtflags flags)
 	{
 		string results;
 
 		if (value)
 		{
-			if (flags & ios_base::dec)
-				results = convertToDec(value);
-			else if (flags & ios_base::hex)
+			if (value.pData->size() == 1)
 			{
-				results = convertToHex(value);
+				stringstream ss;
 
-				if (flags & ios_base::showbase)
-					results.insert(0, "0x");
-			}
-			else if (flags & ios_base::oct)
-			{
-				results = convertToOct(value);
+				ss.flags(flags);
 
-				if (flags & ios_base::showbase)
-					results.insert(begin(results), '0');
+				ss << value.pData->front();
+
+				results = ss.str();
 			}
 			else
-				results = convertToDec(value);
+			{
+				if ((flags & ios_base::hex) != 0)
+				{
+					results = move(convertToHex(value, (flags & ios_base::uppercase) != 0));
+
+					if ((flags & ios_base::showbase) != 0)
+						results.insert(0, "0x");
+				}
+				else if ((flags & ios_base::oct) != 0)
+				{
+					results = move(convertToOct(value));
+
+					if ((flags & ios_base::showbase) != 0)
+						results.insert(begin(results), '0');
+				}
+				else
+					results = move(convertToDec(value));
+			}
 		}
 		else
 		{
 			results = "0";
 
-			if ((flags & ios_base::showbase) && (flags & ios_base::hex))
+			if ((flags & (ios_base::hex | ios_base::showbase)) != 0)
 				results.insert(0, "0x");
+
 		}
 
-		if (flags & ios_base::showpos)
+		if ((flags & ios_base::showpos) != 0)
 			results.insert(begin(results), '+');
 
 		return move(results);
 	}
 
+	// converts a BigInteger to a string
 	string BigIntegerUtil::bigIntegerToString(const BigInteger &value, ios_base::fmtflags flags)
 	{
 		string results = bigUnsignedToString(value.data, flags);
@@ -159,28 +177,29 @@ namespace BigNumber
 		if (value.negative)
 		{
 			if (flags & ios_base::showpos)
-				results[0] = '-';
+				results.front() = '-';
 			else
 				results.insert(begin(results), '-');
 		}
-		else if (flags & ios_base::showpos)
-			results.insert(begin(results), '+');
 
 		return move(results);
 	}
 
+	// sets a BigUnsigned to zero
 	void BigIntegerUtil::clear(BigUnsigned &value)
 	{
 		if (value)
 			value.clearData();
 	}
 
+	// sets a BigInteger to zero
 	void BigIntegerUtil::clear(BigInteger &value)
 	{
 		clear(value.data);
 		value.negative = false;
 	}
 
+	// returns the absolute value of a BigInteger
 	BigInteger BigIntegerUtil::abs(const BigInteger &value)
 	{
 		if (value.negative)
@@ -193,23 +212,23 @@ namespace BigNumber
 	{
 		string results;
 		BigUnsigned::dataType bitsToGet;
-		char prevVal = 0;
-		size_t offset = (3 - (value.pData->size() * sizeof(BigUnsigned::dataType)) % 3) % 3;
+		char cVal = 0;
+		size_t offset = (BigUnsigned::dataTypeSize - 3) + ((value.pData->size() * sizeof(BigUnsigned::dataType)) % 3);
 
 		for (auto iter = rbegin(*value.pData); iter != rend(*value.pData); ++iter)
 		{
-			bitsToGet = (BigUnsigned::dataType)7 << (BigUnsigned::dataTypeSize + offset - 3);
-			results.push_back((prevVal | char(*iter)) - '0');
-			bitsToGet = (BigUnsigned::dataType)7 << (BigUnsigned::dataTypeSize + offset - 6);
+			bitsToGet = (BigUnsigned::dataType)7 << offset;
+			results.push_back((cVal | (char((*iter & bitsToGet) >> offset))) + '0');
+			offset -= 3;
+			bitsToGet = (BigUnsigned::dataType)7 << offset;
 
-			for (size_t i = (BigUnsigned::dataTypeSize + offset) / 3 - 1; i > 0; ++i)
-			{
-				results.push_back(char((*iter & bitsToGet) >> ((i - 1) * 3)) + '0');
-				bitsToGet >>= 3;
-			}
+			for (; bitsToGet >= 7; bitsToGet >>= 3, offset -= 3)
+				results.push_back(char((*iter & bitsToGet) >> offset) + '0');
 
-			offset = (BigUnsigned::dataTypeSize + offset) % 3;
-			prevVal = char((*iter & bitsToGet) << ((3 - offset) % 3));
+			offset += 3;
+
+			cVal = char((*iter & bitsToGet) << ((3 - offset) % 3));
+			offset += BigUnsigned::dataTypeSize - 3;
 		}
 
 		while (results.front() == '0')
@@ -241,7 +260,7 @@ namespace BigNumber
 		return move(results);
 	}
 
-	string BigIntegerUtil::convertToHex(const BigUnsigned &value)
+	string BigIntegerUtil::convertToHex(const BigUnsigned &value, bool uppercase)
 	{
 		string results;
 		BigUnsigned::dataType bitsToGet;
@@ -251,13 +270,13 @@ namespace BigNumber
 		{
 			bitsToGet = (BigUnsigned::dataType)0xF << (BigUnsigned::dataTypeSize - 4);
 
-			for (size_t i = 2 * sizeof(BigUnsigned::dataType); i > 0; ++i)
+			for (size_t i = 2 * sizeof(BigUnsigned::dataType); i > 0; --i)
 			{
 				val = (*iter & bitsToGet) >> ((i - 1) * 4);
 				if (val < 10)
 					results.push_back((char)val + '0');
 				else
-					results.push_back(char(val - 10) + 'a');
+					results.push_back(char(val - 10) + (uppercase ? 'A' : 'a'));
 				bitsToGet >>= 4;
 			}
 		}

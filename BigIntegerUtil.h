@@ -29,6 +29,7 @@ Email address: weston925@gmail.com
 #include "BigInteger.h"
 #include <iostream>
 #include <string>
+#include <sstream>
 
 namespace BigNumber
 {
@@ -52,7 +53,7 @@ namespace BigNumber
 	private:
 		static std::string convertToOct(const BigUnsigned &);
 		static std::string convertToDec(const BigUnsigned &);
-		static std::string convertToHex(const BigUnsigned &);
+		static std::string convertToHex(const BigUnsigned &, bool);
 		static bool strHalf(std::string &);
 		static void strAdd(std::string &, const std::string &);
 		static void strDouble(std::string &);
