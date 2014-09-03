@@ -32,7 +32,14 @@ namespace BigNumber
 	/// Conversion operator to bool
 	BigInteger::operator bool() const
 	{
-		return (bool)data;
+		// this returns false only when the data is zero
+
+		// negative is always false when the data is zero
+		// so return true if negative is true
+		if (negative)
+			return true;
+		else
+			return (bool)data; // return BigUnsigned's bool conversion
 	}
 
 	/// Move assignment operator
@@ -55,9 +62,9 @@ namespace BigNumber
 	/// Addition compound assignment operator
 	BigInteger &BigInteger::operator +=(const BigInteger &rhs)
 	{
-		if (rhs.data) // check if not zero
+		if (rhs) // check if not zero
 		{
-			if (data) // check if not zero
+			if (*this) // check if not zero
 			{
 				// if they both have the same negative value, leave the
 				// negative the same and add the data
@@ -216,7 +223,7 @@ namespace BigNumber
 	/// Unary minus
 	BigInteger BigInteger::operator -() const
 	{
-		if (data) // check if not zero
+		if (*this) // check if not zero
 		{
 			BigInteger retVal(*this); // return value
 
@@ -244,7 +251,7 @@ namespace BigNumber
 	BigInteger BigInteger::operator ++(int unused)
 	{
 		BigInteger temp(*this);
-		++*this;
+		operator ++();
 		return move(temp);
 	}
 
@@ -252,7 +259,7 @@ namespace BigNumber
 	BigInteger BigInteger::operator --(int unused)
 	{
 		BigInteger temp(*this);
-		--*this;
+		operator --();
 		return move(temp);
 	}
 

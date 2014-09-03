@@ -32,6 +32,8 @@ namespace BigNumber
 	/// Conversion operator to bool
 	BigUnsigned::operator bool() const
 	{
+		// this returns false only when the data is zero
+
 		if (pData) // check if not nullptr
 			return !pData->empty(); // return true if not empty
 		else
@@ -77,7 +79,7 @@ namespace BigNumber
 			{
 				// this and rhs is the exact same data so
 				// this creates a temporary BigUnsigned
-				// using rhs and then adds them together
+				// using rhs and then add them together
 				add(BigUnsigned(rhs));
 			}
 		}
@@ -493,7 +495,7 @@ namespace BigNumber
 			}
 
 			// move the results into this
-			*this = move(results);
+			operator =(move(results));
 		}
 
 		// return the remainder
@@ -634,40 +636,6 @@ namespace BigNumber
 			removeLeadingZeros();
 		}
 	}
-
-	/*
-	bool BigUnsigned::isPowOfTwo() const
-	{
-		// this function returns true only if there is
-		// exactly one bit set and the rest are zero
-
-		if (*this) // check if not zero
-		{
-			// loop through each bit
-			for (dataType bit = 1; bit != 0; bit <<= 1)
-			{
-				if ((pData->back() & bit) != 0) // check if the bit is set
-				{
-					if ((pData->back() & ~bit) != 0) // check if the bit is the only one set
-						return false;
-					else
-						break;
-				}
-			}
-
-			// loop through the rest of the data and make sure they are all zero
-			for (auto iter = ++rbegin(*pData); iter != rend(*pData); ++iter)
-			{
-				if (*iter != 0)
-					return false;
-			}
-
-			return true;
-		}
-		else
-			return false;
-	}
-	*/
 
 	/// Equal to operator
 	bool operator ==(const BigUnsigned &lhs, const BigUnsigned &rhs)

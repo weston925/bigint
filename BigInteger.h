@@ -43,28 +43,32 @@ namespace BigNumber
 
 	public:
 		/// Constructor
-		BigInteger() {}
+		BigInteger() = default;
 
+		/// Copy constructor
+		BigInteger(const BigInteger &) = default;
+
+		/// Move constructor
 		BigInteger(BigInteger &&rhs) :data(std::move(rhs.data)), negative(rhs.negative) { rhs.negative = false; }
 
 		/// Construct from integral type
-		template <typename T>
-		BigInteger(const T &other, std::enable_if_t<std::is_integral<T>::value>* = nullptr) { operator =(other); }
+		template <typename T, EnableIfIntegral<T> = 0>
+		BigInteger(const T &other) { operator =(other); }
 
 		/// Destructor
-		~BigInteger() {}
+		~BigInteger() = default;
 
 		/// Conversion operator to bool
 		explicit operator bool() const;
 
 		/// Conversion operator to integral type
-		template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>> explicit operator T() const;
+		template <typename T, EnableIfIntegral<T> = 0> explicit operator T() const;
 
 		/// Assignment operators
 		BigInteger &operator =(const BigInteger &) = default;
 		BigInteger &operator =(BigInteger &&);
 		BigInteger &operator =(const bool &);
-		template <typename T> std::enable_if_t<std::is_integral<T>::value, BigInteger> &operator =(const T &);
+		template <typename T, EnableIfIntegral<T> = 0> BigInteger &operator =(const T &);
 
 		/// Compound assignment operators
 		BigInteger &operator +=(const BigInteger &);
@@ -93,16 +97,16 @@ namespace BigNumber
 		BigInteger operator --(int);
 
 	private:
-		typedef BigUnsigned::dataType dataType;
-		typedef BigUnsigned::colType colType;
-		static const size_t dataTypeSize = 8 * sizeof(dataType);
+		typedef BigUnsigned::dataType dataType; // data type
+		typedef BigUnsigned::colType colType; // collection type
+		static const size_t dataTypeSize = 8 * sizeof(dataType); // number of bits
 
 		BigUnsigned data;
 		bool negative = false;
 	};
 
 	/// Conversion operator to integral type
-	template <typename T, typename>
+	template <typename T, EnableIfIntegral<T>>
 	BigInteger::operator T() const
 	{
 		T retVal = 0; // return value
@@ -172,8 +176,8 @@ namespace BigNumber
 	}
 
 	/// Integral assignment operator
-	template <typename T>
-	std::enable_if_t<std::is_integral<T>::value, BigInteger> &BigInteger::operator =(const T &rhs)
+	template <typename T, EnableIfIntegral<T>>
+	BigInteger &BigInteger::operator =(const T &rhs)
 	{
 		if (rhs < 0) // check if rhs is negative
 		{

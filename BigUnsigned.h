@@ -38,6 +38,10 @@ namespace BigNumber
 	bool operator ==(const BigUnsigned &, const BigUnsigned &);
 	bool operator <(const BigUnsigned &, const BigUnsigned &);
 
+	// template alias for commonly used statement
+	template <typename T>
+	using EnableIfIntegral = typename std::enable_if<std::is_integral<T>::value, int>::type;
+
 	class BigUnsigned
 	{
 		/// Friend classes and functions
@@ -57,8 +61,8 @@ namespace BigNumber
 		BigUnsigned(BigUnsigned &&rhs) :pData(std::move(rhs.pData)) {}
 
 		/// Construct from integral type
-		template <typename T>
-		BigUnsigned(const T &rhs, std::enable_if_t<std::is_integral<T>::value>* = nullptr) { operator =(rhs); }
+		template <typename T, EnableIfIntegral<T> = 0>
+		BigUnsigned(const T &rhs) { operator =(rhs); }
 
 		/// Destructor
 		~BigUnsigned() = default;
@@ -67,13 +71,13 @@ namespace BigNumber
 		explicit operator bool() const;
 
 		/// Conversion operator to integral type
-		template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>> explicit operator T() const;
+		template <typename T, EnableIfIntegral<T> = 0> explicit operator T() const;
 
 		/// Assignment operators
 		BigUnsigned &operator =(const BigUnsigned &) = default;
 		BigUnsigned &operator =(BigUnsigned &&);
 		BigUnsigned &operator =(const bool &);
-		template <typename T> std::enable_if_t<std::is_integral<T>::value, BigUnsigned> &operator =(const T &);
+		template <typename T, EnableIfIntegral<T> = 0> BigUnsigned &operator =(const T &);
 
 		/// Compound assignment operators
 		BigUnsigned &operator +=(const BigUnsigned &);
@@ -99,12 +103,13 @@ namespace BigNumber
 		BigUnsigned operator --(int);
 
 	private:
-		typedef unsigned long dataType;
-		typedef std::deque<dataType> colType;
-		static const size_t dataTypeSize = 8 * sizeof(dataType);
+		typedef unsigned long dataType; // data type
+		typedef std::deque<dataType> colType; // collection type
+		static const size_t dataTypeSize = 8 * sizeof(dataType); // number of bits
 
-		std::shared_ptr<colType> pData;
+		std::shared_ptr<colType> pData; // pointer to data
 
+		/// Helper functions
 		void clearData();
 		void makeDataUnique();
 		void removeLeadingZeros();
@@ -117,11 +122,10 @@ namespace BigNumber
 		void bitXOR(const BigUnsigned &);
 		void bitShiftLeft(BigUnsigned);
 		void bitShiftRight(BigUnsigned);
-		// bool isPowOfTwo() const;
 	};
 
 	/// Conversion operator to integral
-	template <typename T, typename>
+	template <typename T, EnableIfIntegral<T>>
 	BigUnsigned::operator T() const
 	{
 		T retVal = 0; // return value
@@ -168,8 +172,8 @@ namespace BigNumber
 	}
 
 	/// Integral assignment operator
-	template <typename T>
-	std::enable_if_t<std::is_integral<T>::value, BigUnsigned> &BigUnsigned::operator =(const T &rhs)
+	template <typename T, EnableIfIntegral<T>>
+	BigUnsigned &BigUnsigned::operator =(const T &rhs)
 	{
 		// set the data to zero
 		clearData();
