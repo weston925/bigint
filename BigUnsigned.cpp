@@ -97,7 +97,7 @@ namespace BigNumber
 			else if (*this == rhs)
 				clearData(); // subtracting two of the same value returns zero
 			else
-				runtime_error("BigUnsigned: Negative result in unsigned calculation");
+				throw runtime_error("BigUnsigned: Negative result in unsigned calculation");
 		}
 
 		return *this;
@@ -435,7 +435,7 @@ namespace BigNumber
 	BigUnsigned BigUnsigned::divideWithRemainder(const BigUnsigned &rVal)
 	{
 		if (!rVal) // check if zero
-			invalid_argument("BigUnsigned: cannot divide by zero");
+			throw invalid_argument("BigUnsigned: cannot divide by zero");
 
 		// this is what gets returned
 		BigUnsigned remainder;

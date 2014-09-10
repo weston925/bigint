@@ -36,29 +36,27 @@ namespace BigNumber
 	class BigIntegerUtil
 	{
 	public:
+		/// Conversions between signed and unsigned types
 		static BigInteger toSigned(const BigUnsigned &);
 		static BigUnsigned toUnsigned(const BigInteger &);
 
-		static BigUnsigned stringToBigUnsigned(std::string);
-		static BigInteger stringToBigInteger(std::string);
+		/// Conversions from a string to a BigNumber
+		static BigUnsigned stringToBigUnsigned(std::string, unsigned int = 10);
+		static BigInteger stringToBigInteger(std::string, unsigned int = 10);
 
-		static std::string bigUnsignedToString(const BigUnsigned &, std::ios_base::fmtflags = std::ios_base::dec);
-		static std::string bigIntegerToString(const BigInteger &, std::ios_base::fmtflags = std::ios_base::dec);
+		/// Conversions from a BigNumber to a string
+		static std::string bigUnsignedToString(BigUnsigned, unsigned int = 10);
+		static std::string bigIntegerToString(const BigInteger &, unsigned int = 10);
 
+		/// Set a BigNumber to zero
 		static void clear(BigUnsigned &);
 		static void clear(BigInteger &);
 
+		/// Get the absolute value of a BigInteger
 		static BigInteger abs(const BigInteger &);
-
-	private:
-		static std::string convertToOct(const BigUnsigned &);
-		static std::string convertToDec(const BigUnsigned &);
-		static std::string convertToHex(const BigUnsigned &, bool);
-		static bool strHalf(std::string &);
-		static void strAdd(std::string &, const std::string &);
-		static void strDouble(std::string &);
 	};
 
+	/// ostream and istream operator overloads
 	std::ostream &operator <<(std::ostream &, const BigUnsigned &);
 	std::ostream &operator <<(std::ostream &, const BigInteger &);
 	std::istream &operator >>(std::istream &, BigUnsigned &);

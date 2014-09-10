@@ -29,7 +29,7 @@ using namespace std;
 
 namespace BigNumber
 {
-	// converts a BigUnsigned to a BigInteger
+	/// converts a BigUnsigned to a BigInteger
 	BigInteger BigIntegerUtil::toSigned(const BigUnsigned &value)
 	{
 		BigInteger retVal;
@@ -37,169 +37,190 @@ namespace BigNumber
 		return move(retVal);
 	}
 
-	// converts a BigInteger to a BigUnsigned
+	/// converts a BigInteger to a BigUnsigned
 	BigUnsigned BigIntegerUtil::toUnsigned(const BigInteger &value)
 	{
 		if (value.negative)
-			runtime_error("BigIntegerUtil::toUnsigned: cannot convert a negative value to an unsigned data type");
+			throw runtime_error("BigIntegerUtil::toUnsigned: cannot convert a negative number to an unsigned data type");
 
 		return value.data;
 	}
 
-	// converts a string to a BigUnsigned
-	BigUnsigned BigIntegerUtil::stringToBigUnsigned(string value)
+	/// converts a string to a BigUnsigned
+	BigUnsigned BigIntegerUtil::stringToBigUnsigned(string _str, unsigned int base)
 	{
-		BigUnsigned retVal;
+		if (base == 1 || base > 36)
+			throw out_of_range("BigIntegerUtil::stringToBigUnsigned: invalid base number");
 
-		if (value.empty())
-			return retVal;
+		if (_str.empty())
+			throw runtime_error("BigIntegerUtil::stringToBigUnsigned: string recieved is not a valid number");
 
-		if (value.front() == '-')
-			runtime_error("BigIntegerUtil::stringToBigUnsigned: cannot convert a negative value to unsigned data type");
-
-		bool isNumber = true;
-
-		for (auto iter = begin(value); iter != end(value); ++iter)
+		switch (_str.front())
 		{
-			if (!isdigit(*iter))
+		case '-':
+			throw runtime_error("BigIntegerUtil::stringToBigUnsigned: cannot convert a negative number to an unsigned data type");
+		case '+':
+			_str.erase(begin(_str));
+			if (_str.empty())
+				throw runtime_error("BigIntegerUtil::stringToBigUnsigned: string recieved is not a valid number");
+			break;
+		default:
+			break;
+		}
+
+		if ((base == 0 || base == 8 || base == 16) && (_str.front() == '0' && _str.size() > 1))
+		{
+			_str.erase(begin(_str));
+
+			if (_str.front() == 'x' || _str.front() == 'X')
 			{
-				isNumber = false;
-				break;
+				_str.erase(begin(_str));
+
+				if (!_str.empty())
+				{
+					if (base == 0)
+						base = 16;
+					else if (base == 8)
+						throw runtime_error("BigIntegerUtil::stringToBigUnsigned: invalid character found for specified base");
+				}
+				else
+					throw runtime_error("BigIntegerUtil::stringToBigUnsigned: string recieved is not a valid number");
 			}
+			else if (base == 0)
+				base = 8;
 		}
 
-		if (!isNumber)
-			runtime_error("BigIntegerUtil::stringToBigUnsigned: string recieved is not a number");
+		if (base == 0)
+			base = 10;
 
-		BigUnsigned::dataType data = 0;
-		size_t bitsSet = 0;
-		while (value != "0")
+		BigUnsigned data, add(1);
+
+		for (auto iter = rbegin(_str); iter != rend(_str); ++iter)
 		{
-			if (bitsSet == BigUnsigned::dataTypeSize)
+			if (base <= 10)
 			{
-				retVal.pData->push_back(data);
-				bitsSet = 0;
-				data = 0;
+				if (isdigit(*iter) && *iter < (char)base + '0')
+					data += add * (*iter - '0');
+				else
+					throw runtime_error("BigIntegerUtil::stringToBigUnsigned: invalid character found for specified base");
+			}
+			else
+			{
+				if (isdigit(*iter))
+					data += add * (*iter - '0');
+				else
+				{
+					if (islower(*iter))
+					{
+						if ((*iter - 'a') + 10 < (char)base)
+							data += add * ((*iter - 'a') + 10);
+						else
+							throw runtime_error("BigIntegerUtil::stringToBigUnsigned: invalid character found for specified base");
+					}
+					else if (isupper(*iter))
+					{
+						if ((*iter - 'A') + 10 < (char)base)
+							data += add * ((*iter - 'A') + 10);
+						else
+							throw runtime_error("BigIntegerUtil::stringToBigUnsigned: invalid character found for specified base");
+					}
+					else
+						throw runtime_error("BigIntegerUtil::stringToBigUnsigned: invalid character found for specified base");
+				}
 			}
 
-			data >>= 1;
-			if (strHalf(value))
-				data |= 1 << (BigUnsigned::dataTypeSize - 1);
-
-			++bitsSet;
+			add *= base;
 		}
 
-		if (bitsSet != 0)
+		return move(data);
+	}
+
+	/// converts a string to a BigInteger
+	BigInteger BigIntegerUtil::stringToBigInteger(string _str, unsigned int base)
+	{
+		if (_str.empty())
+			throw runtime_error("BigIntegerUtil::stringToBigUnsigned: string recieved is not a valid number");
+
+		BigInteger retVal; // return value
+
+		if (_str.front() == '-') // check for negative sign
 		{
-			data >>= BigUnsigned::dataTypeSize - bitsSet;
-			retVal.pData->push_back(data);
+			_str.erase(begin(_str)); // remove negative sign
+			retVal.negative = true; // set negative to true
 		}
+
+		retVal.data = stringToBigUnsigned(move(_str), base); // get the data
 
 		return move(retVal);
 	}
 
-	// converts a string to a BigInteger
-	BigInteger BigIntegerUtil::stringToBigInteger(string value)
+	/// converts a BigUnsigned to a string
+	string BigIntegerUtil::bigUnsignedToString(BigUnsigned value, unsigned int base)
 	{
-		if (value.empty())
-			runtime_error("BigIntegerUtil::stringToBigUnsigned: cannot get BigUnsigned from an empty string");
+		if (base < 2 || base > 36)
+			throw out_of_range("BigIntegerUtil::bigUnsignedToString: invalid base number");
 
-		BigInteger retVal;
-
-		if (value.front() == '-')
-		{
-			value.erase(begin(value));
-			retVal.negative = true;
-		}
-
-		retVal.data = stringToBigUnsigned(value);
-
-		return move(retVal);
-	}
-
-	// converts a BigUnsigned to a string
-	string BigIntegerUtil::bigUnsignedToString(const BigUnsigned &value, ios_base::fmtflags flags)
-	{
 		string results;
 
 		if (value)
 		{
-			if (value.pData->size() == 1)
+			unsigned int val;
+
+			while (value > base)
 			{
-				stringstream ss;
+				val = (unsigned int)value.divideWithRemainder(base);
 
-				ss.flags(flags);
-
-				ss << value.pData->front();
-
-				results = ss.str();
-			}
-			else
-			{
-				if ((flags & ios_base::hex) != 0)
-				{
-					results = move(convertToHex(value, (flags & ios_base::uppercase) != 0));
-
-					if ((flags & ios_base::showbase) != 0)
-						results.insert(0, "0x");
-				}
-				else if ((flags & ios_base::oct) != 0)
-				{
-					results = move(convertToOct(value));
-
-					if ((flags & ios_base::showbase) != 0)
-						results.insert(begin(results), '0');
-				}
+				if (val < 10)
+					results.insert(begin(results), (char)val + '0');
 				else
-					results = move(convertToDec(value));
+					results.insert(begin(results), char(val - 10) + 'a');
+			}
+
+			if (value)
+			{
+				val = (unsigned int)value;
+
+				if (val < 10)
+					results.insert(begin(results), (char)val + '0');
+				else
+					results.insert(begin(results), char(val - 10) + 'a');
 			}
 		}
 		else
-		{
 			results = "0";
 
-			if ((flags & (ios_base::hex | ios_base::showbase)) != 0)
-				results.insert(0, "0x");
-
-		}
-
-		if ((flags & ios_base::showpos) != 0)
-			results.insert(begin(results), '+');
-
 		return move(results);
 	}
 
-	// converts a BigInteger to a string
-	string BigIntegerUtil::bigIntegerToString(const BigInteger &value, ios_base::fmtflags flags)
+	/// converts a BigInteger to a string
+	string BigIntegerUtil::bigIntegerToString(const BigInteger &value, unsigned int base)
 	{
-		string results = bigUnsignedToString(value.data, flags);
+		if (base < 2 || base > 36)
+			throw out_of_range("BigIntegerUtil::bigIntegerToString: invalid base number");
+
+		string results = bigUnsignedToString(value.data, base);
 
 		if (value.negative)
-		{
-			if (flags & ios_base::showpos)
-				results.front() = '-';
-			else
-				results.insert(begin(results), '-');
-		}
+			results.insert(begin(results), '-');
 
 		return move(results);
 	}
 
-	// sets a BigUnsigned to zero
+	/// sets a BigUnsigned to zero
 	void BigIntegerUtil::clear(BigUnsigned &value)
 	{
 		if (value)
 			value.clearData();
 	}
 
-	// sets a BigInteger to zero
+	/// sets a BigInteger to zero
 	void BigIntegerUtil::clear(BigInteger &value)
 	{
 		clear(value.data);
 		value.negative = false;
 	}
 
-	// returns the absolute value of a BigInteger
+	/// returns the absolute value of a BigInteger
 	BigInteger BigIntegerUtil::abs(const BigInteger &value)
 	{
 		if (value.negative)
@@ -208,182 +229,63 @@ namespace BigNumber
 			return value;
 	}
 
-	string BigIntegerUtil::convertToOct(const BigUnsigned &value)
-	{
-		string results;
-		BigUnsigned::dataType bitsToGet;
-		char cVal = 0;
-		size_t offset = (BigUnsigned::dataTypeSize - 3) + ((value.pData->size() * sizeof(BigUnsigned::dataType)) % 3);
-
-		for (auto iter = rbegin(*value.pData); iter != rend(*value.pData); ++iter)
-		{
-			bitsToGet = (BigUnsigned::dataType)7 << offset;
-			results.push_back((cVal | (char((*iter & bitsToGet) >> offset))) + '0');
-			offset -= 3;
-			bitsToGet = (BigUnsigned::dataType)7 << offset;
-
-			for (; bitsToGet >= 7; bitsToGet >>= 3, offset -= 3)
-				results.push_back(char((*iter & bitsToGet) >> offset) + '0');
-
-			offset += 3;
-
-			cVal = char((*iter & bitsToGet) << ((3 - offset) % 3));
-			offset += BigUnsigned::dataTypeSize - 3;
-		}
-
-		while (results.front() == '0')
-			results.erase(begin(results));
-
-		return move(results);
-	}
-
-	string BigIntegerUtil::convertToDec(const BigUnsigned &value)
-	{
-		string results = "0";
-
-		string add = "1";
-		BigUnsigned::dataType bit;
-
-		for (auto item : *value.pData)
-		{
-			bit = 1;
-			for (size_t i = 0; i < BigUnsigned::dataTypeSize; ++i)
-			{
-				if ((item & bit) != 0)
-					strAdd(results, add);
-
-				strDouble(add);
-				bit <<= 1;
-			}
-		}
-
-		return move(results);
-	}
-
-	string BigIntegerUtil::convertToHex(const BigUnsigned &value, bool uppercase)
-	{
-		string results;
-		BigUnsigned::dataType bitsToGet;
-		size_t val;
-
-		for (auto iter = rbegin(*value.pData); iter != rend(*value.pData); ++iter)
-		{
-			bitsToGet = (BigUnsigned::dataType)0xF << (BigUnsigned::dataTypeSize - 4);
-
-			for (size_t i = 2 * sizeof(BigUnsigned::dataType); i > 0; --i)
-			{
-				val = (*iter & bitsToGet) >> ((i - 1) * 4);
-				if (val < 10)
-					results.push_back((char)val + '0');
-				else
-					results.push_back(char(val - 10) + (uppercase ? 'A' : 'a'));
-				bitsToGet >>= 4;
-			}
-		}
-
-		while (results.front() == '0')
-			results.erase(begin(results));
-
-		return move(results);
-	}
-
-	bool BigIntegerUtil::strHalf(string &_str)
-	{
-		if (!_str.empty())
-		{
-			size_t val = _str.front() - '0';
-			bool remainder = val % 2 == 1;
-			string halfVal;
-
-			if (val != 0)
-				halfVal = to_string(val / 2);
-
-			for (auto iter = ++begin(_str); iter != end(_str); ++iter)
-			{
-				val = *iter - '0';
-				if (remainder)
-					val += 10;
-				remainder = val % 2 == 1;
-				halfVal.append(to_string(val / 2));
-			}
-
-			_str = halfVal;
-			return remainder;
-		}
-		else
-		{
-			_str = "0";
-			return false;
-		}
-	}
-
-	void BigIntegerUtil::strAdd(string &_str, const string &_add)
-	{
-		auto strIter = rbegin(_str);
-		auto addIter = rbegin(_add);
-		size_t val;
-		size_t carry = 0;
-
-		for (; strIter != rend(_str) && addIter != rend(_add); ++strIter, ++addIter)
-		{
-			val = (*strIter - '0') + (*addIter - '0') + carry;
-			carry = val / 10;
-			*strIter = (val % 10) + '0';
-		}
-
-		for (; strIter != rend(_str); ++strIter)
-		{
-			if (carry != 0)
-			{
-				val = (*strIter - '0') + carry;
-				carry = val / 10;
-				*strIter = (val % 10) + '0';
-			}
-			else
-				break;
-		}
-
-		for (; addIter != rend(_add); ++addIter)
-		{
-			if (carry != 0)
-			{
-				val = (*addIter - '0') + carry;
-				carry = val / 10;
-				_str.insert(begin(_str), (val % 10) + '0');
-			}
-			else
-				_str.insert(begin(_str), *addIter);
-		}
-
-		if (carry != 0)
-			_str.insert(begin(_str), carry + '0');
-	}
-
-	void BigIntegerUtil::strDouble(string &_str)
-	{
-		size_t val;
-		size_t carry = 0;
-
-		for (auto iter = rbegin(_str); iter != rend(_str); ++iter)
-		{
-			val = (*iter - '0') * 2 + carry;
-			carry = val / 10;
-			*iter = (val % 10) + '0';
-		}
-
-		if (carry != 0)
-			_str.insert(begin(_str), carry + '0');
-	}
-
 	ostream &operator <<(ostream &os, const BigUnsigned &num)
 	{
-		os << BigIntegerUtil::bigUnsignedToString(num, os.flags());
+		if ((os.flags() & ios_base::showpos) != 0)
+			os << "+";
+
+		if ((os.flags() & ios_base::hex) != 0)
+		{
+			if ((os.flags() & ios_base::showbase) != 0)
+				os << "0x";
+
+			os << BigIntegerUtil::bigUnsignedToString(num, 16);
+		}
+		else if ((os.flags() & ios_base::oct) != 0)
+		{
+			if (num)
+			{
+				if ((os.flags() & ios_base::showbase) != 0)
+					os << "0";
+
+				os << BigIntegerUtil::bigUnsignedToString(num, 8);
+			}
+			else
+				os << "0";
+		}
+		else
+			os << BigIntegerUtil::bigUnsignedToString(num, 10);
+
 		return os;
 	}
 
 	ostream &operator <<(ostream &os, const BigInteger &num)
 	{
-		os << BigIntegerUtil::bigIntegerToString(num, os.flags());
+		if (num >= 0 && (os.flags() & ios_base::showpos) != 0)
+			os << "+";
+
+		if ((os.flags() & ios_base::hex) != 0)
+		{
+			if ((os.flags() & ios_base::showbase) != 0)
+				os << "0x";
+
+			os << BigIntegerUtil::bigIntegerToString(num, 16);
+		}
+		else if ((os.flags() & ios_base::oct) != 0)
+		{
+			if (num)
+			{
+				if ((os.flags() & ios_base::showbase) != 0)
+					os << "0";
+
+				os << BigIntegerUtil::bigIntegerToString(num, 8);
+			}
+			else
+				os << "0";
+		}
+		else
+			os << BigIntegerUtil::bigIntegerToString(num, 10);
+
 		return os;
 	}
 

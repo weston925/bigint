@@ -103,7 +103,13 @@ namespace BigNumber
 		BigUnsigned operator --(int);
 
 	private:
-		typedef unsigned long dataType; // data type
+
+#ifdef _M_X64
+		typedef unsigned long long dataType; // 64-bit data type
+#else
+		typedef unsigned long dataType; // 32-bit data type
+#endif
+
 		typedef std::deque<dataType> colType; // collection type
 		static const size_t dataTypeSize = 8 * sizeof(dataType); // number of bits
 
@@ -165,7 +171,7 @@ namespace BigNumber
 				}
 			}
 			else
-				std::overflow_error("BigUnsigned: Value is too big to fit in the requested type");
+				throw std::overflow_error("BigUnsigned: Value is too big to fit in the requested type");
 		}
 
 		return retVal;
@@ -181,7 +187,7 @@ namespace BigNumber
 		if (rhs != 0) // check if rhs is not zero
 		{
 			if (rhs < 0)
-				std::invalid_argument("BigUnsigned: Cannot set from a negative number");
+				throw std::invalid_argument("BigUnsigned: Cannot set from a negative number");
 
 			// this next if statement should always be true. see comments
 			// in the function above this one as to why it could be false

@@ -163,10 +163,10 @@ namespace BigNumber
 							retVal *= -1;
 					}
 					else
-						std::underflow_error("BigInteger: Value is too small to fit in the requested type");
+						throw std::underflow_error("BigInteger: Value is too small to fit in the requested type");
 				}
 				else
-					std::runtime_error("BigInteger: Cannot put a negative number in an unsigned type");
+					throw std::runtime_error("BigInteger: Cannot put a negative number in an unsigned type");
 			}
 			else
 				retVal = (T)data; // the data is positive so use the data's conversion operator
